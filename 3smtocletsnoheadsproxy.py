@@ -4,6 +4,10 @@ import threading
 import keyboard
 import os
 from concurrent.futures import ThreadPoolExecutor
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Number of sessions to open
 NUM_SESSIONS = 1
@@ -15,10 +19,10 @@ CHROMEDRIVER_PATH = r"C:\\Selenium\\chromedriver.exe"
 EXTENSION_PATH = r""
 
 # Proxy ph residential credentials
-PROXY_HOST = ""
-PROXY_PORT = ""
-PROXY_USER = ""
-PROXY_PASS = ""
+PROXY_HOST = os.getenv("PROXY_HOST")
+PROXY_PORT = os.getenv("PROXY_PORT")
+PROXY_USER = os.getenv("PROXY_USER")
+PROXY_PASS = os.getenv("PROXY_PASS")
 
 # List to store browser instances
 browsers = []
