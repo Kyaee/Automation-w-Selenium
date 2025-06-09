@@ -1,0 +1,1 @@
+- I was having a problem running the script, then i tried running first the chromedriver version 137.0.7151.69. Then it work

@@ -1,16 +1,11 @@
 from selenium import webdriver
-from selenium.webdriver.chrome.options import Options # allows customization of web driver
+from selenium.webdriver.chrome.service import Service
+import time 
 
-chrome_options = Options()
-chrome_options.add_argument("--disable-gpu")
-chrome_options.add_argument("--no-sandbox")
-chrome_options.add_argument("--headless")
-chrome_options.add_argument("start-maximized")
-chrome_options.add_argument("disable-infobars")
-chrome_options.add_argument("--disable-extensions")
-chrome_options.browser_version = "latest"  # specify the browser version if needed
+service = Service(executable_path='chromedriver.exe')
+driver = webdriver.Chrome(service=service)
+driver.get("https://www.google.com")
+time.sleep(5)  # Wait for 5 seconds to see the page
+driver.quit()  # Close the browser
 
-driver = webdriver.Chrome(options=chrome_options)
-driver.get("http://selenium.dev")
-driver.quit()
-
+# This code initializes a Chrome browser, navigates to Google, waits for 5 seconds, and then closes the browser.
