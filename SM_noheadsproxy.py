@@ -4,25 +4,14 @@ import threading
 import keyboard
 import os
 from concurrent.futures import ThreadPoolExecutor
-from dotenv import load_dotenv
-
-# Load environment variables from .env file
-load_dotenv()
 
 # Number of sessions to open
-NUM_SESSIONS = 1
+NUM_SESSIONS = 3
 
 # Path to ChromeDriver
-CHROMEDRIVER_PATH = r"C:\\Selenium\\chromedriver.exe"
+CHROMEDRIVER_PATH = r"chromedriver.exe"
 
-# Path to your Chrome extension
-EXTENSION_PATH = r""
-
-# Proxy ph residential credentials
-PROXY_HOST = os.getenv("PROXY_HOST")
-PROXY_PORT = os.getenv("PROXY_PORT")
-PROXY_USER = os.getenv("PROXY_USER")
-PROXY_PASS = os.getenv("PROXY_PASS")
+# ------------------------------------------
 
 # List to store browser instances
 browsers = []
@@ -34,10 +23,17 @@ def start_browser(session_id):
 
     options = webdriver.ChromeOptions()
     options.add_argument(f"--user-data-dir={profile_path}")
-    options.add_argument(f"--load-extension={EXTENSION_PATH}")
 
-    # Use your own proxy instead of Selenium Wire's proxy
-    options.add_argument(f"--proxy-server=http://{PROXY_USER}:{PROXY_PASS}@{PROXY_HOST}:{PROXY_PORT}")
+    # --- Proxy selection logic ---
+    if USE_WEB_UNLOCKER:
+        proxy_url = f"http://{WEB_UNLOCKER_USER}:{WEB_UNLOCKER_PASS}@{WEB_UNLOCKER_PROXY}"
+        options.add_argument(f"--proxy-server={proxy_url}")
+        print(f"[INFO] Using Oxylabs Web Unlocker proxy for Session {session_id}.")
+    else:
+        proxy_url = f"http://{PROXY_USER}:{PROXY_PASS}@{PROXY}"
+        options.add_argument(f"--proxy-server={proxy_url}")
+        print(f"[INFO] Using Oxylabs Residential proxy for Session {session_id}.")
+    # ----------------------------
 
     # Enable headless mode
     options.add_argument("--headless=new")  # New headless mode for better performance
@@ -63,8 +59,13 @@ def start_browser(session_id):
     service = Service(CHROMEDRIVER_PATH)
     driver = webdriver.Chrome(service=service, options=options)
 
+    # Add custom header for Oxylabs Web Unlocker
+    driver.header_overrides = {
+        "x-oxylabs-render": "html"
+    }
+
     # Open the target site
-    driver.get("https://smtickets.com/events/view/14363")
+    driver.get("https://smtickets.com/events/view/14889")
     print(f"[INFO] Browser Session {session_id} started with profile {profile_path} (Headless) using your proxy.")
 
     # Add browser instance to the global list safely
@@ -79,26 +80,35 @@ def start_browser(session_id):
 def monitor_requests(driver, session_id):
     """
     Waits for 'queueittoken=' in the network requests, then prints the request URL and closes the browser.
+    If using a web unlocker, also checks the current URL as a fallback.
     """
     print(f"[INFO] Monitoring network requests in Session {session_id}...")
 
     while driver.service.is_connectable():
         try:
+            # Check Selenium Wire requests (works with standard proxies)
             for request in driver.requests:
-                url = request.url.lower()  # Convert to lowercase for consistency
-                
+                url = request.url.lower()
                 if "queueittoken=" in url:
                     print(f"[SESSION {session_id}] Matching Request Found: {request.url}")
-                    
-                    # Close browser after detecting the request
                     driver.quit()
                     print(f"[INFO] Browser Session {session_id} closed.")
-
-                    # Remove from active browsers list safely
                     with lock:
                         if driver in browsers:
                             browsers.remove(driver)
-                    return  # Stop monitoring this session
+                    return
+
+            # Fallback: Check current URL (works with web unlocker)
+            current_url = driver.current_url.lower()
+            if "queueittoken=" in current_url:
+                print(f"[SESSION {session_id}] Matching URL Found in browser: {driver.current_url}")
+                driver.quit()
+                print(f"[INFO] Browser Session {session_id} closed.")
+                with lock:
+                    if driver in browsers:
+                        browsers.remove(driver)
+                return
+
         except Exception:
             pass  # Keep looping until request appears
 
